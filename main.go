@@ -5,95 +5,140 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strings"
 )
 
-type Indent struct {
-	Level      int
-	IndentChar rune
+type SchemaBuilder struct {
+	writer io.Writer
+	indent string
 }
 
-func DefaultIndent() Indent {
-	return Indent{
-		Level:      0,
-		IndentChar: ' ',
+func NewSchemaBuilder(w io.Writer) *SchemaBuilder {
+	return &SchemaBuilder{
+		writer: w,
+		indent: "  ",
 	}
 }
 
-func (i Indent) addIndent() Indent {
-	i.Level = +1
+func (sb *SchemaBuilder) buildSchema(v interface{}, level int) error {
+	if v == nil {
+		_, err := fmt.Fprint(sb.writer, "null")
+		return err
+	}
 
-	return i
+	switch val := v.(type) {
+	case map[string]interface{}:
+		return sb.handleObject(val, level)
+	case []interface{}:
+		return sb.handleArray(val, level)
+	case string:
+		return sb.writeType("string")
+	case float64:
+		return sb.writeType("number")
+	case bool:
+		return sb.writeType("boolean")
+	default:
+		return sb.writeType(fmt.Sprintf("unknown (%T)", v))
+	}
+}
+
+func (sb *SchemaBuilder) handleObject(m map[string]interface{}, level int) error {
+	if _, err := fmt.Fprintln(sb.writer, "{"); err != nil {
+		return err
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	for i, key := range keys {
+		indent := strings.Repeat(sb.indent, level+1)
+		if _, err := fmt.Fprintf(sb.writer, "%s%q: ", indent, key); err != nil {
+			return err
+		}
+
+		if err := sb.buildSchema(m[key], level+1); err != nil {
+			return err
+		}
+
+		if i < len(keys)-1 {
+			if _, err := fmt.Fprint(sb.writer, ","); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(sb.writer); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintf(sb.writer, "%s}", strings.Repeat(sb.indent, level)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sb *SchemaBuilder) handleArray(arr []interface{}, level int) error {
+	if _, err := fmt.Fprintln(sb.writer, "["); err != nil {
+		return err
+	}
+
+	if len(arr) > 0 {
+		indent := strings.Repeat(sb.indent, level+1)
+		if _, err := fmt.Fprint(sb.writer, indent); err != nil {
+			return err
+		}
+		if err := sb.buildSchema(arr[0], level+1); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(sb.writer); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintf(sb.writer, "%s]", strings.Repeat(sb.indent, level)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sb *SchemaBuilder) writeType(t string) error {
+	_, err := fmt.Fprint(sb.writer, t)
+	return err
+}
+
+func processInput(input io.Reader, output io.Writer) error {
+	var data interface{}
+	if err := json.NewDecoder(input).Decode(&data); err != nil {
+		return fmt.Errorf("parsing JSON: %w", err)
+	}
+
+	builder := NewSchemaBuilder(output)
+	if err := builder.buildSchema(data, 0); err != nil {
+		return fmt.Errorf("building schema: %w", err)
+	}
+
+	if _, err := fmt.Fprintln(output); err != nil {
+		return fmt.Errorf("writing final newline: %w", err)
+	}
+
+	return nil
 }
 
 func main() {
-	var input io.Reader
+	input := os.Stdin
 	if len(os.Args) > 1 {
 		file, err := os.Open(os.Args[1])
 		if err != nil {
-			fmt.Printf("Error opening file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
 			os.Exit(1)
 		}
 		defer file.Close()
 		input = file
-	} else {
-		input = os.Stdin
 	}
 
-	var jsonData interface{}
-	decoder := json.NewDecoder(input)
-	err := decoder.Decode(&jsonData)
-	if err != nil {
-		fmt.Printf("Error parsing JSON: %v\n", err)
+	if err := processInput(input, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
-	}
-
-	var sb strings.Builder
-	buildStructure(&sb, jsonData, 0)
-	sb.WriteString("\n")
-	fmt.Print(sb.String())
-}
-
-func buildStructure(sb *strings.Builder, v interface{}, indent int) {
-	if v == nil {
-		sb.WriteString("null")
-		return
-	}
-
-	t := reflect.TypeOf(v)
-	switch t.Kind() {
-	case reflect.Map:
-		sb.WriteString("{\n")
-		m := reflect.ValueOf(v)
-		keys := m.MapKeys()
-		for i, key := range keys {
-			sb.WriteString(fmt.Sprintf("%s%v: ", strings.Repeat("  ", indent+1), key.Interface()))
-			buildStructure(sb, m.MapIndex(key).Interface(), indent+1)
-			if i < len(keys)-1 {
-				sb.WriteString(",")
-			}
-			sb.WriteString("\n")
-		}
-		sb.WriteString(strings.Repeat("  ", indent) + "}")
-	case reflect.Slice:
-		sb.WriteString("[\n")
-		s := reflect.ValueOf(v)
-		if s.Len() > 0 {
-			sb.WriteString(strings.Repeat("  ", indent+1))
-			buildStructure(sb, s.Index(0).Interface(), indent+1)
-			sb.WriteString("\n")
-		}
-		sb.WriteString(strings.Repeat("  ", indent) + "]")
-	case reflect.String:
-		sb.WriteString("string")
-	case reflect.Float64:
-		sb.WriteString("number")
-	case reflect.Bool:
-		sb.WriteString("boolean")
-	case reflect.Invalid:
-		sb.WriteString("null")
-	default:
-		sb.WriteString(fmt.Sprintf("unknown (%v)", t.Kind()))
 	}
 }
