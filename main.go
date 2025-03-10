@@ -139,16 +139,25 @@ func readFromFile(filename string) (*os.File, error) {
 	return file, nil
 }
 
-func main() {
+func handleArguments() (*os.File, error) {
 	input := os.Stdin
 	if len(os.Args) > 1 {
 		input, err := readFromFile(os.Args[1])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return nil, fmt.Errorf("error reading file: %w", err)
 		}
-		defer input.Close()
+		return input, nil
 	}
+	return input, nil
+}
+
+func main() {
+	input, err := handleArguments()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer input.Close()
 
 	if err := processInput(input, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
