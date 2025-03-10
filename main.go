@@ -130,10 +130,23 @@ func processInput(input io.Reader, output io.Writer) error {
 	return nil
 }
 
+func readFromFile(filename string) (*os.File, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error opening file: %w", err)
+	}
+
+	return file, nil
+}
+
 func main() {
 	input := os.Stdin
 	if len(os.Args) > 1 {
-		input = readFromFile(os.Args[1])
+		input, err := readFromFile(os.Args[1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		defer input.Close()
 	}
 
@@ -141,13 +154,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func readFromFile(filename string) *os.File {
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
-	}
-	return file
 }
