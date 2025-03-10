@@ -133,17 +133,21 @@ func processInput(input io.Reader, output io.Writer) error {
 func main() {
 	input := os.Stdin
 	if len(os.Args) > 1 {
-		file, err := os.Open(os.Args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-			os.Exit(1)
-		}
-		defer file.Close()
-		input = file
+		input = readFromFile(os.Args[1])
+		defer input.Close()
 	}
 
 	if err := processInput(input, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func readFromFile(filename string) *os.File {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
+		os.Exit(1)
+	}
+	return file
 }
