@@ -5,7 +5,7 @@
 
 
 ## Example 
-Note: The output is a not 100& valid JSON. I might optimize this or another format at a later stage.
+Note: The output is a not 100% valid JSON. I might optimize this or another format at a later stage.
 ``` json
 [
   {
