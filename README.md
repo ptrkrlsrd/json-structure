@@ -5,19 +5,19 @@
 
 
 ## Example 
-Note: The output is a not valid JSON. I might switch to JSON or another format at a later stage.
+Note: The output is a not 100& valid JSON. I might optimize this or another format at a later stage.
 ``` json
 [
   {
-    "image": string,
-    "id": number,
-    "winery": string,
-    "wine": string,
+    "winery": "string",
+    "wine": "string",
     "rating": {
-      "average": string,
-      "reviews": string
+      "average": "string",
+      "reviews": "string"
     },
-    "location": string
+    "location": "string",
+    "image": "string",
+    "id": "number"
   }
 ]
 ```
