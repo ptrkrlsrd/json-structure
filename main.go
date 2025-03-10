@@ -43,6 +43,11 @@ func (sb *SchemaBuilder) buildSchema(v interface{}, level int) error {
 }
 
 func (sb *SchemaBuilder) handleObject(m map[string]interface{}, level int) error {
+	if len(m) == 0 {
+		_, err := fmt.Fprint(sb.writer, "{}")
+		return err
+	}
+
 	if _, err := fmt.Fprintln(sb.writer, "{"); err != nil {
 		return err
 	}
