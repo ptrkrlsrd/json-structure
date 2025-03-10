@@ -9,6 +9,24 @@ import (
 	"strings"
 )
 
+type Indent struct {
+	Level      int
+	IndentChar rune
+}
+
+func DefaultIndent() Indent {
+	return Indent{
+		Level:      0,
+		IndentChar: ' ',
+	}
+}
+
+func (i Indent) addIndent() Indent {
+	i.Level = +1
+
+	return i
+}
+
 func main() {
 	var input io.Reader
 	if len(os.Args) > 1 {
@@ -22,6 +40,7 @@ func main() {
 	} else {
 		input = os.Stdin
 	}
+
 	var jsonData interface{}
 	decoder := json.NewDecoder(input)
 	err := decoder.Decode(&jsonData)
@@ -29,6 +48,7 @@ func main() {
 		fmt.Printf("Error parsing JSON: %v\n", err)
 		os.Exit(1)
 	}
+
 	var sb strings.Builder
 	buildStructure(&sb, jsonData, 0)
 	sb.WriteString("\n")
