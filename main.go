@@ -20,7 +20,7 @@ func NewSchemaBuilder(w io.Writer) *SchemaBuilder {
 	}
 }
 
-func (sb *SchemaBuilder) buildSchema(v interface{}, level int) error {
+func (sb *SchemaBuilder) buildSchema(v any, level int) error {
 	if v == nil {
 		_, err := fmt.Fprint(sb.writer, "null")
 		return err
@@ -42,7 +42,7 @@ func (sb *SchemaBuilder) buildSchema(v interface{}, level int) error {
 	}
 }
 
-func (sb *SchemaBuilder) handleObject(m map[string]interface{}, level int) error {
+func (sb *SchemaBuilder) handleObject(m map[string]any, level int) error {
 	if len(m) == 0 {
 		_, err := fmt.Fprint(sb.writer, "{}")
 		return err
@@ -83,7 +83,7 @@ func (sb *SchemaBuilder) handleObject(m map[string]interface{}, level int) error
 	return nil
 }
 
-func (sb *SchemaBuilder) handleArray(arr []interface{}, level int) error {
+func (sb *SchemaBuilder) handleArray(arr []any, level int) error {
 	if _, err := fmt.Fprintln(sb.writer, "["); err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (sb *SchemaBuilder) writeType(t string) error {
 }
 
 func processInput(input io.Reader, output io.Writer) error {
-	var data interface{}
+	var data any
 	if err := json.NewDecoder(input).Decode(&data); err != nil {
 		return fmt.Errorf("parsing JSON: %w", err)
 	}
