@@ -32,11 +32,11 @@ func (sb *SchemaBuilder) buildSchema(v any, level int) error {
 	case []interface{}:
 		return sb.handleArray(val, level)
 	case string:
-		return sb.writeType("string")
+		return sb.writeType("\"string\"")
 	case float64:
-		return sb.writeType("number")
+		return sb.writeType("\"number\"")
 	case bool:
-		return sb.writeType("boolean")
+		return sb.writeType("\"boolean\"")
 	default:
 		return sb.writeType(fmt.Sprintf("unknown (%T)", v))
 	}
